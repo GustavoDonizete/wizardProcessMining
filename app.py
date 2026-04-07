@@ -22,6 +22,7 @@ import core
 app = Flask(__name__)
 app.secret_key = "elb-simple-2024"
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100 MB
+app.config["JSON_AS_ASCII"] = False  # garante ã, ç, é no JSON/AJAX sem escape
 
 app.jinja_env.filters["basename"] = os.path.basename
 
@@ -282,4 +283,4 @@ def download_sql():
 # ── Entry point ───────────────────────────────────────────
 if __name__ == "__main__":
     UPLOAD_DIR.mkdir(exist_ok=True)
-    app.run(debug=True, port=5001)
+    app.run(debug=True, port=8080)
