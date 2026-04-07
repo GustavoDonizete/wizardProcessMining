@@ -4,6 +4,7 @@ Contém: profiling, exportação e validação. Sem dependências de UI.
 """
 
 import io
+import re
 from typing import Optional
 import pandas as pd
 import numpy as np
@@ -36,7 +37,10 @@ def _carregar_csv(caminho: str) -> pd.DataFrame:
                     kwargs["sep"] = sep
                 df = pd.read_csv(caminho, **kwargs)
                 if len(df.columns) > 1:
-                    # Normaliza colunas string para UTF-8 independente do encoding original
+                    # Remove colunas "Unnamed: X" com >90% de nulos (separadores extras no CSV)
+                    unnamed = [c for c in df.columns if str(c).startswith("Unnamed:")]
+                    df = df.drop(columns=[c for c in unnamed if df[c].isna().mean() > 0.9])
+                    # Normaliza strings para UTF-8 independente do encoding original
                     for col in df.select_dtypes(include="object").columns:
                         df[col] = df[col].apply(
                             lambda x: x.encode("utf-8", errors="replace").decode("utf-8") if isinstance(x, str) else x
