@@ -15,18 +15,50 @@ from dateutil import parser as dateutil_parser
 #  UTILS
 # ══════════════════════════════════════════════════════════
 
+def _carregar_csv(caminho: str) -> pd.DataFrame:
+    """
+    Carrega CSV detectando separador e encoding automaticamente.
+    Tenta encodings: UTF-8, UTF-8-BOM, Latin-1, CP1252.
+    Tenta separadores: auto (python engine), ; , , \\t, |
+    Retorna o primeiro DataFrame com mais de 1 coluna.
+    """
+    encodings  = ["utf-8", "utf-8-sig", "latin-1", "cp1252"]
+    separators = [None, ";", ",", "\t", "|"]  # None = auto-detect
+
+    for enc in encodings:
+        for sep in separators:
+            try:
+                kwargs = dict(encoding=enc, on_bad_lines="skip", low_memory=False)
+                if sep is None:
+                    kwargs["sep"]    = None
+                    kwargs["engine"] = "python"
+                else:
+                    kwargs["sep"] = sep
+                df = pd.read_csv(caminho, **kwargs)
+                if len(df.columns) > 1:
+                    return df
+            except Exception:
+                continue
+
+    raise ValueError(
+        "Não foi possível detectar o separador do CSV. "
+        "Verifique se o arquivo está correto (separadores aceitos: vírgula, ponto-e-vírgula, tab ou pipe)."
+    )
+
+
 def carregar_dataframe(caminho: str) -> pd.DataFrame:
     """Carrega CSV, Excel, Parquet ou JSON automaticamente."""
     ext = Path(caminho).suffix.lower()
+    if ext == ".csv":
+        return _carregar_csv(caminho)
     loaders = {
-        ".csv":     lambda p: pd.read_csv(p, encoding="utf-8", on_bad_lines="skip"),
         ".xlsx":    lambda p: pd.read_excel(p),
         ".xls":     lambda p: pd.read_excel(p),
         ".parquet": lambda p: pd.read_parquet(p),
         ".json":    lambda p: pd.read_json(p),
     }
     if ext not in loaders:
-        raise ValueError(f"Formato '{ext}' não suportado.")
+        raise ValueError(f"Formato '{ext}' não suportado. Use CSV, Excel, Parquet ou JSON.")
     return loaders[ext](caminho)
 
 
