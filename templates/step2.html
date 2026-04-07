@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h2>Configurar Colunas</h2>
+  <p><strong>{{ source_name }}</strong> — {{ "{:,}".format(shape.rows|int) }} linhas · {{ shape.cols }} colunas</p>
+</div>
+
+<form method="POST" action="{{ url_for('step2_post') }}">
+
+  {% set roles = [
+    ('case_id',   'case_id_col',          'Case_ID',         'Identificador único do processo', '#0369a1'),
+    ('timestamp', 'timestamp_start_col',  'Timestamp_Start', 'Data/hora de início do evento',   '#854d0e'),
+    ('activity',  'activity_col',         'Activity',        'Atividade/etapa do processo',     '#166534'),
+  ] %}
+
+  {% for key, field, label, desc, color in roles %}
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2">
+      <span class="role-badge" style="background:{{ color }}20; color:{{ color }};">{{ label }}</span>
+      <span class="text-muted small">{{ desc }}</span>
+    </div>
+    <div class="card-body p-3">
+      <div class="row g-2">
+        {% for cand in profile[key] %}
+        <div class="col-md-6 col-lg-4">
+          <label class="cand-card {{ 'selected' if loop.first else '' }}">
+            <input type="radio" name="{{ field }}" value="{{ cand.col }}"
+                   {{ 'checked' if loop.first else '' }} required class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="fw-semibold small">{{ cand.col }}</span>
+              <span class="score-pct">{{ "%.0f"|format(cand.score*100) }}%</span>
+            </div>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:{{ "%.0f"|format(cand.score*100) }}%"></div></div>
+            <p class="text-muted mt-2 mb-0" style="font-size:.75rem">{{ cand.justificativa }}</p>
+          </label>
+        </div>
+        {% endfor %}
+        <div class="col-md-6 col-lg-4">
+          <label class="cand-card manual" id="manual_{{ field }}">
+            <input type="radio" name="{{ field }}" value="__manual__" class="d-none" id="radio_manual_{{ field }}">
+            <span class="fw-semibold small"><i class="bi bi-pencil me-1"></i>Outra coluna</span>
+            <select class="form-select form-select-sm mt-2" id="sel_{{ field }}" disabled
+                    onchange="document.getElementById('radio_manual_{{ field }}').value = this.value">
+              <option value="">Selecionar...</option>
+              {% for col in colunas %}<option>{{ col }}</option>{% endfor %}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      {% if key == 'timestamp' %}
+      <div class="mt-3 pt-2 border-top">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="toggle_tsend">
+          <label class="form-check-label small" for="toggle_tsend">
+            Incluir <span class="role-badge" style="background:#854d0e20;color:#854d0e">Timestamp_End</span> (fim do evento)
+          </label>
+        </div>
+        <div id="tsend_block" class="d-none mt-2 row g-2">
+          {% for cand in profile['timestamp'] %}
+          <div class="col-md-6 col-lg-4">
+            <label class="cand-card">
+              <input type="radio" name="timestamp_end_col" value="{{ cand.col }}" class="d-none">
+              <span class="fw-semibold small">{{ cand.col }}</span>
+            </label>
+          </div>
+          {% endfor %}
+          <div class="col-md-6 col-lg-4">
+            <label class="cand-card manual">
+              <input type="radio" name="timestamp_end_col" value="__manual__" class="d-none" id="radio_manual_tsend">
+              <span class="fw-semibold small"><i class="bi bi-pencil me-1"></i>Outra coluna</span>
+              <select class="form-select form-select-sm mt-2" disabled
+                      onchange="document.getElementById('radio_manual_tsend').value = this.value">
+                <option>Selecionar...</option>
+                {% for col in colunas %}<option>{{ col }}</option>{% endfor %}
+              </select>
+            </label>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('step1') }}" class="btn btn-outline-secondary">← Voltar</a>
+    <button type="submit" class="btn-primary-orange">
+      <i class="bi bi-arrow-right-circle me-2"></i>Selecionar Atividades
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Selecionar candidate card com clique
+document.querySelectorAll('.cand-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const radio = card.querySelector('input[type=radio]');
+    if (!radio) return;
+    document.querySelectorAll(`input[name="${radio.name}"]`).forEach(r =>
+      r.closest('.cand-card')?.classList.remove('selected'));
+    card.classList.add('selected');
+    radio.checked = true;
+    const sel = card.querySelector('select');
+    if (sel) sel.disabled = false; else
+      card.closest('.card-body').querySelectorAll('select').forEach(s => s.disabled = true);
+  });
+});
+
+document.getElementById('toggle_tsend').addEventListener('change', function() {
+  document.getElementById('tsend_block').classList.toggle('d-none', !this.checked);
+});
+</script>
+{% endblock %}

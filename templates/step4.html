@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h2>Resumo das Fontes</h2>
+  <p>{{ fontes|length }} fonte(s) configurada(s). Adicione mais ou prossiga para exportação.</p>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for f in fontes %}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between">
+        <span class="fw-bold"><i class="bi bi-database me-1 text-primary"></i>{{ f.source_name }}</span>
+        <span class="badge-source">Fonte {{ loop.index }}</span>
+      </div>
+      <div class="card-body p-3">
+        <dl class="row small mb-2">
+          <dt class="col-5 text-muted">Case_ID</dt>      <dd class="col-7"><code>{{ f.case_id_col }}</code></dd>
+          <dt class="col-5 text-muted">Activity</dt>     <dd class="col-7"><code>{{ f.activity_col }}</code></dd>
+          <dt class="col-5 text-muted">Ts Start</dt>     <dd class="col-7"><code>{{ f.timestamp_start_col }}</code></dd>
+          {% if f.timestamp_end_col %}
+          <dt class="col-5 text-muted">Ts End</dt>       <dd class="col-7"><code>{{ f.timestamp_end_col }}</code></dd>
+          {% endif %}
+        </dl>
+        <p class="small text-muted mb-1"><strong>{{ f.activities_selected|length }}</strong> atividade(s):</p>
+        <div class="d-flex flex-wrap gap-1">
+          {% for a in f.activities_selected %}
+          <span class="badge bg-light text-dark border small">{{ a }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-body p-4">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <form method="POST" action="{{ url_for('step4_post') }}">
+          <input type="hidden" name="acao" value="add">
+          <button type="submit" class="decision-card w-100">
+            <i class="bi bi-plus-circle fs-2 d-block mb-2 text-primary"></i>
+            <strong>Adicionar outra fonte</strong>
+            <p class="small text-muted mb-0">Incluir mais uma base de dados</p>
+          </button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <form method="POST" action="{{ url_for('step4_post') }}">
+          <input type="hidden" name="acao" value="export">
+          <button type="submit" class="decision-card decision-primary w-100">
+            <i class="bi bi-download fs-2 d-block mb-2"></i>
+            <strong>Gerar Event Log</strong>
+            <p class="small mb-0" style="opacity:.8">Exportar com {{ fontes|length }} fonte(s)</p>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

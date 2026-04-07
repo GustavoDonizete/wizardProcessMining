@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h2>Validação Cruzada</h2>
+    <p>4 checagens automáticas de qualidade do Event Log.</p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if export.csv_path %}<a href="{{ url_for('download_csv') }}" class="btn btn-success btn-sm"><i class="bi bi-filetype-csv me-1"></i>CSV</a>{% endif %}
+    {% if export.sql_path %}<a href="{{ url_for('download_sql') }}" class="btn btn-primary btn-sm"><i class="bi bi-filetype-sql me-1"></i>SQL</a>{% endif %}
+  </div>
+</div>
+
+<!-- Sumário -->
+<div class="d-flex gap-3 mb-4 flex-wrap">
+  {% for key, lbl, clr, bg in [
+    ('ok','OK','#15803d','#dcfce7'),
+    ('aviso','Avisos','#a16207','#fef9c3'),
+    ('erro','Erros','#b91c1c','#fee2e2'),
+  ] %}
+  <div class="flex-fill text-center p-3 rounded" style="background:{{ bg }};min-width:90px">
+    <div class="fw-bold fs-3" style="color:{{ clr }}">{{ validacao.summary[key] }}</div>
+    <div class="small" style="color:{{ clr }}">{{ lbl }}</div>
+  </div>
+  {% endfor %}
+  {% if export.row_count %}
+  <div class="flex-fill text-center p-3 rounded" style="background:#fff7ed;min-width:90px">
+    <div class="fw-bold fs-3" style="color:var(--orange)">{{ "{:,}".format(export.row_count|int) }}</div>
+    <div class="small text-muted">Eventos</div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Seções -->
+{% for sec in validacao.sections %}
+{% set has_erro  = sec.results | selectattr('status','eq','erro')  | list | length > 0 %}
+{% set has_aviso = sec.results | selectattr('status','eq','aviso') | list | length > 0 %}
+{% set hdr_bg    = '#fef2f2' if has_erro else ('#fefce8' if has_aviso else '#f0fdf4') %}
+{% set hdr_color = '#b91c1c' if has_erro else ('#a16207' if has_aviso else '#15803d') %}
+{% set hdr_icon  = 'bi-x-circle-fill' if has_erro else ('bi-exclamation-triangle-fill' if has_aviso else 'bi-check-circle-fill') %}
+
+<div class="card mb-3">
+  <div class="card-header fw-semibold d-flex align-items-center gap-2"
+       style="background:{{ hdr_bg }};color:{{ hdr_color }};border-color:{{ hdr_bg }}">
+    <i class="bi {{ hdr_icon }}"></i> {{ sec.title }}
+  </div>
+  {% for r in sec.results %}
+  <div class="d-flex align-items-start gap-2 px-3 py-2 border-bottom">
+    {% if r.status == 'ok' %}
+      <span class="badge rounded-pill" style="background:#dcfce7;color:#15803d;white-space:nowrap">OK</span>
+    {% elif r.status == 'aviso' %}
+      <span class="badge rounded-pill" style="background:#fef9c3;color:#a16207;white-space:nowrap">AVISO</span>
+    {% else %}
+      <span class="badge rounded-pill" style="background:#fee2e2;color:#b91c1c;white-space:nowrap">ERRO</span>
+    {% endif %}
+    <span class="small">{{ r.msg }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<!-- Finalização -->
+<div class="card text-center p-4 mt-2" style="background:#fff7ed;border-color:#fed7aa">
+  <i class="bi bi-trophy-fill fs-1 d-block mb-2" style="color:var(--orange)"></i>
+  <h5 class="fw-bold">Event Log pronto para Process Mining!</h5>
+  <p class="text-muted mb-3">Importe o CSV em ProM, Celonis, Disco ou PM4Py.</p>
+  <div class="d-flex justify-content-center gap-2 flex-wrap">
+    {% if export.csv_path %}<a href="{{ url_for('download_csv') }}" class="btn btn-success"><i class="bi bi-filetype-csv me-2"></i>Baixar CSV</a>{% endif %}
+    {% if export.sql_path %}<a href="{{ url_for('download_sql') }}" class="btn btn-primary"><i class="bi bi-filetype-sql me-2"></i>Baixar SQL</a>{% endif %}
+    <a href="{{ url_for('step1') }}" class="btn btn-outline-secondary"><i class="bi bi-plus-circle me-2"></i>Nova Sessão</a>
+  </div>
+</div>
+{% endblock %}

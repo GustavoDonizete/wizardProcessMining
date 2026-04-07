@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h2>Carregar Base de Dados</h2>
+  <p>Selecione o arquivo e nomeie a fonte de dados.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <form method="POST" action="{{ url_for('step1_post') }}" enctype="multipart/form-data" id="form1">
+      <div class="card mb-3">
+        <div class="card-body p-3">
+          <label class="form-label fw-semibold">Nome da Fonte</label>
+          <input type="text" name="source_name" class="form-control" required maxlength="60"
+                 placeholder="Ex: Salesforce CRM, Oracle ERP...">
+          <div class="form-text">Aparecerá na coluna <code>Source</code> do Event Log.</div>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body p-3">
+          <label class="form-label fw-semibold">Arquivo de Dados</label>
+          <div class="upload-zone" id="zone">
+            <input type="file" class="d-none" id="arquivo" name="arquivo"
+                   accept=".csv,.xlsx,.xls,.parquet,.json" required>
+            <div id="zone-content">
+              <i class="bi bi-cloud-arrow-up-fill upload-icon"></i>
+              <p class="fw-semibold mb-1">Clique ou arraste o arquivo aqui</p>
+              <p class="text-muted small mb-0">CSV · Excel · Parquet · JSON — máx. 100 MB</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary-orange" id="btn-submit">
+        <i class="bi bi-arrow-right-circle me-2"></i>Analisar Colunas
+      </button>
+    </form>
+  </div>
+
+  <div class="col-lg-5">
+    {% if fontes %}
+    <div class="card mb-3 border-success-subtle">
+      <div class="card-header text-success-emphasis bg-success-subtle">
+        <i class="bi bi-check-circle me-1"></i>{{ fontes|length }} fonte(s) configurada(s)
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for f in fontes %}
+        <li class="list-group-item small">
+          <strong>{{ f.source_name }}</strong> —
+          <code>{{ f.activity_col }}</code> · {{ f.activities_selected|length }} atividades
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle me-1"></i>Formatos aceitos</div>
+      <div class="card-body p-3 d-flex flex-wrap gap-2">
+        {% for ext in ['CSV','Excel','Parquet','JSON'] %}
+        <span class="badge bg-light text-dark border">{{ ext }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const zone = document.getElementById('zone');
+const inp  = document.getElementById('arquivo');
+zone.addEventListener('click', () => inp.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) { inp.files = e.dataTransfer.files; showFile(inp.files[0]); }
+});
+inp.addEventListener('change', () => inp.files.length && showFile(inp.files[0]));
+function showFile(f) {
+  zone.classList.add('has-file');
+  document.getElementById('zone-content').innerHTML =
+    `<i class="bi bi-file-earmark-check-fill upload-icon" style="color:var(--orange)"></i>
+     <p class="fw-semibold mb-0">${f.name}</p>
+     <p class="text-muted small">${(f.size/1024/1024).toFixed(2)} MB</p>`;
+}
+document.getElementById('form1').addEventListener('submit', () => {
+  const b = document.getElementById('btn-submit');
+  b.disabled = true;
+  b.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Analisando...';
+});
+</script>
+{% endblock %}

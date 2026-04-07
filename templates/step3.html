@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h2>Selecionar Atividades</h2>
+  <p><strong>{{ source_name }}</strong> — coluna <code>{{ activity_col }}</code></p>
+</div>
+
+<form method="POST" action="{{ url_for('step3_post') }}" id="form3">
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-tags me-1"></i>Atividades disponíveis</span>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleAll(true)">Todas</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll(false)">Nenhuma</button>
+      </div>
+    </div>
+
+    <div class="card-body" id="loading-state">
+      <div class="text-center py-4">
+        <div class="spinner-border" style="color:var(--orange)"></div>
+        <p class="mt-2 text-muted">Carregando atividades...</p>
+      </div>
+    </div>
+
+    <div class="card-body d-none" id="pills-container">
+      <div class="activity-pills" id="pills"></div>
+      <p class="mt-3 mb-0 small text-muted">
+        <span id="sel-count" class="fw-bold" style="color:var(--orange)">0</span> selecionadas
+      </p>
+    </div>
+
+    <div class="card-body d-none" id="error-state">
+      <div class="alert alert-danger mb-0">
+        <i class="bi bi-x-circle me-2"></i><span id="error-msg"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('step2') }}" class="btn btn-outline-secondary">← Voltar</a>
+    <button type="submit" class="btn-primary-orange" id="btn3" disabled>
+      <i class="bi bi-arrow-right-circle me-2"></i>Confirmar Fonte
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COL = {{ activity_col | tojson }};
+
+async function carregar() {
+  try {
+    const r = await fetch(`/api/activities?col=${encodeURIComponent(COL)}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    renderPills(d.values);
+  } catch(e) {
+    document.getElementById('loading-state').classList.add('d-none');
+    document.getElementById('error-state').classList.remove('d-none');
+    document.getElementById('error-msg').textContent = e.message;
+  }
+}
+
+function renderPills(vals) {
+  const c = document.getElementById('pills');
+  c.innerHTML = vals.map(v => `
+    <label class="activity-pill checked" onclick="toggle(this)">
+      <input type="checkbox" name="activities" value="${esc(v)}" checked>
+      <i class="bi bi-check-lg pill-check"></i> ${esc(v)}
+    </label>`).join('');
+  document.getElementById('loading-state').classList.add('d-none');
+  document.getElementById('pills-container').classList.remove('d-none');
+  atualizar();
+}
+
+function toggle(pill) {
+  const cb = pill.querySelector('input');
+  cb.checked = !cb.checked;
+  pill.classList.toggle('checked', cb.checked);
+  atualizar();
+}
+
+function toggleAll(val) {
+  document.querySelectorAll('#pills .activity-pill').forEach(p => {
+    p.querySelector('input').checked = val;
+    p.classList.toggle('checked', val);
+  });
+  atualizar();
+}
+
+function atualizar() {
+  const n = document.querySelectorAll('#pills input:checked').length;
+  document.getElementById('sel-count').textContent = n;
+  document.getElementById('btn3').disabled = n === 0;
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+carregar();
+</script>
+{% endblock %}
