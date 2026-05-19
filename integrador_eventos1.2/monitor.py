@@ -238,3 +238,31 @@ def log_export(session_id: str, estado: dict, opcao_export: str):
 
     except Exception:
         pass
+
+
+def log_session_fim(session_id: str, estado: dict):
+    """Atualiza a sessão com dados finais sem exportação (ex: nova sessão)."""
+    try:
+        sources     = estado.get("sources", [])
+        total_ativs = sum(len(s.get("activities_selected", [])) for s in sources)
+        concluiu    = "sim" if estado.get("export", {}).get("csv_path") or \
+                               estado.get("export", {}).get("sql_path") else "não"
+        with _lock:
+            abas = {a: _ler_aba(a) for a in CABECALHOS}
+            mask = abas["sessions"]["session_id"] == session_id
+            if not mask.any():
+                return
+            inicio_str = abas["sessions"].loc[mask, "data_inicio"].values[0]
+            try:
+                inicio  = datetime.strptime(inicio_str, "%Y-%m-%d %H:%M:%S")
+                duracao = round((datetime.now() - inicio).total_seconds() / 60, 1)
+            except Exception:
+                duracao = ""
+            abas["sessions"].loc[mask, "data_fim"]                      = _agora()
+            abas["sessions"].loc[mask, "duracao_minutos"]               = str(duracao)
+            abas["sessions"].loc[mask, "concluiu_export"]               = concluiu
+            abas["sessions"].loc[mask, "total_fontes"]                  = str(len(sources))
+            abas["sessions"].loc[mask, "total_atividades_selecionadas"] = str(total_ativs)
+            _salvar_todas(abas)
+    except Exception:
+        pass
