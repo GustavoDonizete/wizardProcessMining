@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Criptografia de Dados Sensíveis</h2>
+  <p>Escolha quais colunas do Event Log devem ser anonimizadas com hash MD5. Esta etapa é opcional.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="elb-card">
+      <div class="elb-card-header">Colunas disponíveis</div>
+      <div class="elb-card-body">
+        <p style="font-size:.85rem;color:var(--gray-500)">
+          Selecione as colunas que contêm dados sensíveis (como Case_ID, CPF, matrícula).
+          O mesmo valor sempre gerará o mesmo hash — a rastreabilidade entre fontes é mantida.
+        </p>
+
+        <form method="POST">
+          <div class="d-flex flex-column gap-2 mb-4">
+            {% for col in colunas_event_log %}
+            <label class="export-opt" id="opt-{{ loop.index }}">
+              <input type="checkbox" name="colunas_cripto" value="{{ col }}"
+                     class="cripto-check"
+                     style="width:18px;height:18px;accent-color:var(--orange);cursor:pointer;flex-shrink:0" />
+              <div>
+                <div class="fw-semibold" style="font-size:.9rem">{{ col }}</div>
+                <div style="font-size:.78rem;color:var(--gray-500)">
+                  {% if col == "Case_ID" %}Identificador do caso — frequentemente sensível{% endif %}
+                  {% if col == "Activity" %}Nome da atividade{% endif %}
+                  {% if col == "Timestamp_Start" %}Data/hora de início{% endif %}
+                  {% if col == "Timestamp_End" %}Data/hora de fim{% endif %}
+                  {% if col == "Source" %}Nome da fonte de origem{% endif %}
+                </div>
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+
+          <div id="cripto-preview" class="p-3 rounded-3 mb-4"
+               style="background:var(--orange-light);border:1px solid var(--orange-border);display:none">
+            <div class="fw-semibold mb-1" style="font-size:.85rem;color:var(--orange-dark)">
+              🔐 O que será gerado
+            </div>
+            <div style="font-size:.82rem;color:var(--gray-700)">
+              Junto com o Event Log será gerado um arquivo
+              <strong>de_para_criptografia.xlsx</strong> com uma aba por coluna,
+              contendo o valor original e o hash MD5 correspondente.
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <a href="{{ url_for('step4') }}" class="btn btn-outline-secondary">← Voltar</a>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('step5_post') }}" id="btn-pular"
+                 onclick="event.preventDefault(); document.querySelectorAll('.cripto-check').forEach(c=>c.checked=false); this.closest('form').submit();"
+                 class="btn btn-outline-secondary">Pular</a>
+              <button type="submit" class="btn-orange">Avançar para exportação →</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="elb-card">
+      <div class="elb-card-header">Como funciona o MD5</div>
+      <div class="elb-card-body">
+        <div class="mb-4">
+          <div class="fw-semibold mb-2" style="font-size:.85rem">Exemplo de transformação</div>
+          <div class="p-3 rounded-3" style="background:var(--gray-50);font-size:.82rem;font-family:monospace">
+            <div style="color:var(--gray-500)">Valor original:</div>
+            <div class="fw-bold mb-2">123.456.789-00</div>
+            <div style="color:var(--gray-500)">Hash MD5 (32 chars):</div>
+            <div class="fw-bold" style="color:var(--orange-dark);word-break:break-all">
+              a1b2c3d4e5f67890abcd1234ef567890
+            </div>
+          </div>
+        </div>
+        <div class="d-flex flex-column gap-2" style="font-size:.83rem">
+          <div class="d-flex gap-2"><span style="color:var(--orange)">✓</span><span>Mesmo valor → mesmo hash em todas as fontes</span></div>
+          <div class="d-flex gap-2"><span style="color:var(--orange)">✓</span><span>Rastreabilidade entre bases preservada</span></div>
+          <div class="d-flex gap-2"><span style="color:var(--orange)">✓</span><span>Arquivo de-para disponível para reversão</span></div>
+          <div class="d-flex gap-2"><span style="color:var(--gray-400)">!</span><span style="color:var(--gray-500)">Trate o arquivo de-para como dado sensível</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const checks  = document.querySelectorAll('.cripto-check');
+const preview = document.getElementById('cripto-preview');
+function atualizar() {
+  const tem = [...checks].some(c => c.checked);
+  preview.style.display = tem ? '' : 'none';
+  document.querySelectorAll('.export-opt').forEach(opt => {
+    opt.classList.toggle('selected', opt.querySelector('input').checked);
+  });
+}
+checks.forEach(c => c.addEventListener('change', atualizar));
+atualizar();
+</script>
+{% endblock %}
