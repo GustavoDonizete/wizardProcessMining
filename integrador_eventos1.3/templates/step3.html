@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Seleção de Atividades</h2>
+  <p>Escolha quais atividades da coluna <code>{{ activity_col }}</code> devem ser incluídas no Event Log.</p>
+</div>
+
+<div class="elb-card">
+  <div class="elb-card-header">
+    <span>{{ source_name }}</span>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-all">Selecionar tudo</button>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-none">Limpar</button>
+    </div>
+  </div>
+  <div class="elb-card-body">
+
+    <div id="loading-pills" class="text-center py-4" style="color:var(--gray-500)">
+      <div class="spinner-border spinner-border-sm me-2" style="color:var(--orange)"></div>
+      Carregando atividades…
+    </div>
+
+    <form method="POST" id="act-form">
+      <div class="activity-pills" id="pills-container" style="display:none"></div>
+
+      <div class="d-flex justify-content-between align-items-center mt-4 pt-3"
+           style="border-top:1px solid var(--gray-200)">
+        <div style="font-size:.85rem;color:var(--gray-500)">
+          <span id="count-sel">0</span> selecionada(s)
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('step2') }}" class="btn btn-outline-secondary">← Voltar</a>
+          <button type="submit" class="btn-orange" id="btn-submit" disabled>
+            Confirmar fonte →
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const activityCol = {{ activity_col|tojson }};
+
+async function carregarAtividades() {
+  try {
+    const res  = await fetch(`/api/activities?col=${encodeURIComponent(activityCol)}`);
+    const data = await res.json();
+    document.getElementById('loading-pills').style.display = 'none';
+    const container = document.getElementById('pills-container');
+    container.style.display = '';
+    if (data.error || !data.values.length) {
+      container.innerHTML = '<p class="text-muted">Nenhum valor encontrado.</p>'; return;
+    }
+    data.values.forEach(val => {
+      const label = document.createElement('label');
+      label.className = 'activity-pill';
+      label.innerHTML = `<input type="checkbox" name="activities" value="${val}" /><span>✓</span>${val}`;
+      label.querySelector('input').addEventListener('change', atualizarContador);
+      container.appendChild(label);
+    });
+    atualizarContador();
+  } catch(e) {
+    document.getElementById('loading-pills').innerHTML = '<p class="text-danger">Erro ao carregar atividades.</p>';
+  }
+}
+
+function atualizarContador() {
+  const total = document.querySelectorAll('#pills-container input:checked').length;
+  document.getElementById('count-sel').textContent = total;
+  document.getElementById('btn-submit').disabled = total === 0;
+  document.querySelectorAll('.activity-pill').forEach(p =>
+    p.classList.toggle('checked', p.querySelector('input').checked)
+  );
+}
+
+document.getElementById('btn-all').addEventListener('click', () => {
+  document.querySelectorAll('#pills-container input').forEach(i => i.checked = true);
+  atualizarContador();
+});
+document.getElementById('btn-none').addEventListener('click', () => {
+  document.querySelectorAll('#pills-container input').forEach(i => i.checked = false);
+  atualizarContador();
+});
+
+carregarAtividades();
+</script>
+{% endblock %}
